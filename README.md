@@ -25,7 +25,7 @@ Most users will be launching GrabSteamURL in their `4.4.2 Launcher`, but it can 
 
 ## Getting Started
 1. Download the latest release (EXE version) or build your own executable.
-2. Place it in the same folder as `steam_lobby.exe`.
+2. Place it in the same folder as `steam_lobby.exe` (the `Win64` Binaries folder.
 3. Launch using the launcher or run directly (if your launcher is out of date you can download the updated one here).
 
 ## Author
