@@ -7,8 +7,8 @@ import subprocess
 import webbrowser
 
 # Third-party libraries
+import pyperclip
 import requests
-import psutil
 from bs4 import BeautifulSoup
 from colorama import init, Fore, Style
 
@@ -16,9 +16,11 @@ infinite_mode = True # determines if profile will be searched infinitely or not
 lobby_program_name = "steam_lobby.exe" # program to run with url
 sleep_delay = 3 # seconds between attempts
 last_profile = None # stores last visited profile
+copy_to_clipboard = False # if a valid lobby url is found copy to clipboard
+quiet = False # if retry message should appear or not
 
 def main():
-    init()
+    init() # initializes colors
     while (True):
         is_valid_input = False
         user_input = None
@@ -33,7 +35,7 @@ def main():
             join_lobby(join_game_url)
 
 def get_user_input():
-    global last_profile
+    global last_profile, sleep_delay, infinite_mode, copy_to_clipboard, quiet
     print(Fore.CYAN + 'Input a Steam Profile URL or "-help" for more info: ' + Style.RESET_ALL, end='')
     user_input = input().lower().strip()
     
@@ -63,6 +65,23 @@ def get_user_input():
         print_help()
     elif (user_input == "-tutorial"):
         open_tutorial()
+    elif (user_input == "-settings"):
+        print_settings()
+    elif (user_input == "-quiet"):
+        quiet = not quiet
+        print(Fore.YELLOW + "[→] Toggled Quiet Mode." + Style.RESET_ALL)
+    elif (user_input == "-quiet"):
+        infinite_mode = not infinite_mode
+        print(Fore.YELLOW + "[→] Toggled Search Mode." + Style.RESET_ALL)
+    elif (user_input == "-copy"):
+        copy_to_clipboard = not copy_to_clipboard
+        print(Fore.YELLOW + "[→] Toggled Copying To Clipboard." + Style.RESET_ALL)
+    elif (user_input.startswith("-delay ")):
+        try:
+            sleep_delay = int(user_input.split()[1])
+            print(Fore.YELLOW + f"[→] Retry delay set to {sleep_delay} seconds." + Style.RESET_ALL)
+        except ValueError:
+             print(Fore.RED + "[!] Invalid delay value. Use an integer like -delay 3" + Style.RESET_ALL)
     elif (user_input == "-last"):
         if (not last_profile == None):
             return last_profile
@@ -80,7 +99,7 @@ def is_steam_profile_url(s):
 def print_about():
     print(Fore.MAGENTA + Style.BRIGHT + "\n[ About GrabSteamURL ]" + Style.RESET_ALL)
 
-    print(Fore.CYAN + "* Version:" + Style.RESET_ALL + " Beta (Python build, compiled 6/06/2025)")
+    print(Fore.CYAN + "* Version:" + Style.RESET_ALL + " v1.0 (Python build, compiled 6/12/2025)")
 
     print(Fore.CYAN + "\n* Description:" + Style.RESET_ALL)
     print("  GrabSteamURL is a lightweight web scraper that takes a user-supplied")
@@ -114,7 +133,7 @@ def open_github():
 
 def open_tutorial():
     print(Fore.YELLOW + "[>] Opening Video Tutorial in default browser..." + Style.RESET_ALL)
-    webbrowser.open("https://www.youtube.com")
+    webbrowser.open("https://youtu.be/I_BWOd8Wljo")
 
 def print_help():
     print(Fore.MAGENTA + Style.BRIGHT + "\n[ GrabSteamURL Help ]" + Style.RESET_ALL)
@@ -122,12 +141,13 @@ def print_help():
     print(Fore.CYAN + "\n== Commands ==" + Style.RESET_ALL)
     print(f"{Fore.YELLOW}-about     {Style.RESET_ALL}: Show info about GrabSteamURL")
     print(f"{Fore.YELLOW}-help      {Style.RESET_ALL}: Display this help menu")
-    print(f"{Fore.YELLOW}-github    {Style.RESET_ALL}: Open the GitHub page")
-    print(f"{Fore.YELLOW}-id        {Style.RESET_ALL}: Use a custom ID input format (Switch)")
-    print(f"{Fore.YELLOW}-64        {Style.RESET_ALL}: Use Steam-64 ID input format (Switch)")
     print(f"{Fore.YELLOW}-last      {Style.RESET_ALL}: Reuse the last searched profile")
-    print(f"{Fore.YELLOW}-tutorial  {Style.RESET_ALL}: Opens a video Tutorial")
+    print(f"{Fore.YELLOW}-id        {Style.RESET_ALL}: Use a Custom ID input format (Switch)")
+    print(f"{Fore.YELLOW}-64        {Style.RESET_ALL}: Use Steam-64 ID input format (Switch)")
+    print(f"{Fore.YELLOW}-github    {Style.RESET_ALL}: Open the GitHub page")
     print(f"{Fore.YELLOW}-privacy   {Style.RESET_ALL}: Open Steam privacy settings")
+    print(f"{Fore.YELLOW}-tutorial  {Style.RESET_ALL}: Opens a video Tutorial")
+    print(f"{Fore.YELLOW}-settings  {Style.RESET_ALL}: Displays settings commands")
     print(f"{Fore.YELLOW}-return    {Style.RESET_ALL}: Close the program")
 
     print(Fore.CYAN + "\n== Input Examples ==" + Style.RESET_ALL)
@@ -136,12 +156,26 @@ def print_help():
     print(f'{Fore.GREEN}Steam64   {Style.RESET_ALL}: 76561198085278322 -64')
 
     print(Fore.CYAN + "\n== Common Issues ==" + Style.RESET_ALL)
-    print(f"{Fore.RED}- Make sure the host has created the lobby.")
-    print(f"  It should say 'Connecting to players' on their screen.")
+    print(f"{Fore.RED}- Make sure the host has created the lobby. It should say 'Connecting to players' on their screen.")
     print(f"- The host's profile and game details must be set to 'Public' on Steam.")
     print(f"- Ensure the host is Online (not Invisible).")
     print(f"- Double-check the profile URL/ID formatting.")
     print(f"- Verify that steam_lobby.exe exists and is working correctly.\n" + Style.RESET_ALL)
+
+def print_settings():
+    print(Fore.MAGENTA + Style.BRIGHT + "\n[ GrabSteamURL Settings ]" + Style.RESET_ALL)
+
+    print(Fore.CYAN + "\n== Commands ==" + Style.RESET_ALL)
+    print(f"{Fore.YELLOW}-delay #    {Style.RESET_ALL}: Changes the delay between searching in seconds (default is 3)")
+    print(f"{Fore.YELLOW}-toggleinf  {Style.RESET_ALL}: Toggles between infinite search and single search")
+    print(f"{Fore.YELLOW}-copy       {Style.RESET_ALL}: Toggles copying join game urls to your clipboard when found")
+    print(f"{Fore.YELLOW}-quiet      {Style.RESET_ALL}: Toggles retry message when searching a profile")
+    
+    print(Fore.CYAN + "\n== Last Saved Profile ==" + Style.RESET_ALL)
+    print(f'{Fore.GREEN}URL {Style.RESET_ALL}: {last_profile}')
+    
+    print(Fore.CYAN + "\n== Notice ==" + Style.RESET_ALL)
+    print(f"{Fore.RED}These settings are only saved per session, if the program closes, everything will be reset.\n" + Style.RESET_ALL)
 
 def scrape_join_url(profile_url):
     headers = {'User-Agent': 'Mozilla/5.0'}
@@ -154,6 +188,7 @@ def scrape_join_url(profile_url):
 
             if response.status_code != 200:
                 print(Fore.YELLOW + f"[!] Failed to load profile. HTTP {response.status_code}" + Style.RESET_ALL)
+                pause_console()
                 return None
 
             soup = BeautifulSoup(response.text, 'html.parser')
@@ -163,25 +198,31 @@ def scrape_join_url(profile_url):
                 href = str(link.get('href', ''))
                 if href.startswith("steam://joinlobby"):
                     print(Fore.GREEN + "[+] Lobby found!" + Style.RESET_ALL)
+                    if copy_to_clipboard:
+                        pyperclip.copy(href)
                     return href
 
             if not infinite_mode:
                 print(Fore.RED + "[?] Lobby not found. Use -help for more info." + Style.RESET_ALL)
+                pause_console()
                 return None
-            else:
+            elif (not quiet):
                 print(Fore.CYAN + "[~] Lobby not found, retrying... (Ctrl + C to cancel)" + Style.RESET_ALL)
-                time.sleep(sleep_delay)
-
+            time.sleep(sleep_delay)
+            
     except KeyboardInterrupt:
         print(Fore.LIGHTRED_EX + "[×] Search interrupted by user." + Style.RESET_ALL)
         pause_console()
         return None
     except requests.RequestException as e:
         print(Fore.RED + f"[!] Network error: {e}" + Style.RESET_ALL)
+        pause_console()
         return None
 
+def is_profile_public():
+    print("WIP")
+
 def join_lobby(join_url):
-    # kill_existing_instances()
     if not os.path.exists("steam_lobby.exe"):
         print(Fore.RED + f"[×] steam_lobby.exe not found in the current directory." + Style.RESET_ALL)
         pause_console()
@@ -200,11 +241,6 @@ def clear_console():
 
 def pause_console():
     os.system('pause' if os.name == 'nt' else '')
-
-def kill_existing_instances():
-    for process in psutil.process_iter(['name']):
-        if process.info['name'] == "steam_lobby.exe":
-            process.kill()
 
 if __name__ == "__main__":
     os.system("title GrabSteamURL")
